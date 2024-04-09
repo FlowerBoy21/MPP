@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidenav from '../Elements/SideNav';
 import './AddPage.css';
+import axios from 'axios';
 
 export const AddPage = () => {
     const [formData, setFormData] = useState({
@@ -17,16 +18,24 @@ export const AddPage = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Handle submission, e.g., sending data to backend
-        console.log('Form data:', formData);
-        // Reset form fields
-        setFormData({
-            name: '',
-            breed: '',
-            address: ''
-        });
+        try {
+            const response = await axios.post('http://localhost:8080/api/cows', formData);
+            if (response.status === 201) {
+                console.log('Cow added successfully');
+                // Reset form fields
+                setFormData({
+                    name: '',
+                    breed: '',
+                    address: ''
+                });
+            } else {
+                console.error('Failed to add cow:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error adding cow:', error.message);
+        }
     };
 
     return (

@@ -3,6 +3,8 @@ import Chart from 'chart.js/auto';
 import Sidenav from '../Elements/SideNav';
 import { cow } from '../cow';
 import './MasterPage.css';
+import axios from 'axios';
+import {useNavigate} from 'react-router-dom';
 
 export const MasterPage = () => {
     const [data, setData] = useState(cow);
@@ -10,6 +12,22 @@ export const MasterPage = () => {
     const [breedDistribution, setBreedDistribution] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 4;
+    const navigate = useNavigate();
+    
+    const fetchData = () => {
+        axios.get("http://localhost:8080/api/cows")
+          .then(response => {
+            setData(response.data); // Update state with response data
+          })
+          .catch(error => {
+            console.error("Error fetching cows:", error);
+          });
+      };
+
+      useEffect(() => {
+        fetchData();
+        }, []);
+
 
     useEffect(() => {
         calculateBreedDistribution();
@@ -58,25 +76,31 @@ export const MasterPage = () => {
     };
 
     const handleDetails = (selectedCow) => {
-        console.log("Details for:", selectedCow);
+        navigate(`/detail/${selectedCow.id}`)
     };
 
     const handleEdit = (selectedCow) => {
         setEditCow(selectedCow);
     };
 
-    const handleDelete = (cowId) => {
-        const confirmDelete = window.confirm('Are you sure you want to delete this cow?');
-        
-        if (confirmDelete) {
-            const newData = data.filter(cow => cow.id !== cowId);
-            setData(newData);
-            console.log("Deleted:", cowId);
-        } else {
-            console.log("Deletion cancelled");
+    const handleDelete = async (cowId) => {
+        try {
+            const response = await axios.delete(`http://localhost:8080/api/cows/${cowId}`);
+            if (response.status === 204) {
+                // Remove the deleted cow from the frontend data
+                const newData = data.filter(cow => cow.id !== cowId);
+                setData(newData);
+                console.log("Deleted:", cowId);
+            } else {
+                console.error('Failed to delete cow:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error deleting cow:', error.message);
         }
     };
-
+    
+    
+    
     const handleSortAscending = () => {
         const sortedData = [...data].sort((a, b) => a.name.localeCompare(b.name));
         setData(sortedData);
@@ -87,15 +111,23 @@ export const MasterPage = () => {
         setData(sortedData);
     };
 
-    const handleSaveEdit = (editedData) => {
-        const index = data.findIndex(cow => cow.id === editedData.id);
-        if (index !== -1) {
-            const newData = [...data];
-            newData[index] = editedData;
-            setData(newData);
-            setEditCow(null);
+    const handleSaveEdit = async (editedData) => {
+        try {
+            const response = await axios.put(`http://localhost:8080/api/cows/${editedData.id}`, editedData);
+            if (response.status === 200) {
+                // Update the edited cow in the frontend data
+                const updatedData = data.map(cow => (cow.id === editedData.id ? editedData : cow));
+                setData(updatedData);
+                setEditCow(null);
+                console.log("Cow updated successfully:", editedData.id);
+            } else {
+                console.error('Failed to update cow:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error updating cow:', error.message);
         }
     };
+    
 
     const totalPages = Math.ceil(data.length / itemsPerPage);
 
